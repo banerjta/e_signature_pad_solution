@@ -1,14 +1,12 @@
 # e_signature_pad_solution
  demo app and code for developing a solution for esignature in chrome os
- E-signature pad support - topaz
+ E-signature pad support - topaz, scriptel
 # Features
 The demo app provided with this repository allows web-based apps/pages to interact with topaz e-signature devices:
 Events for connected / disconnected devices
-Events for button presses / slider movements
-Events for motion events (pickedup and layed down)
-Commands to set LED states (predefined states or individual LED settings)
+
 Demo website
-You can test out the capabilities with a supported device using this demo website.
+You can test out the capabilities with a supported device using this demo website.- https://nabeelkhu.github.io/signature/
 TODO: host latest release and link here
 # Supported devices
 # E-signature pads
@@ -27,6 +25,10 @@ T-LBK766SE-BBSB-R (LBK766)
 T-LBK766SE-BHSB-R (LBK766)
 
 T-LBK766SE-BHSX-R (LBK766)
+
+ST1570-6ft
+
+ST1571-6ft
 
 # Supported platforms
 Google Chrome on Windows, macOS, Linux and Chrome OS (Chromebooks)
