@@ -116,9 +116,17 @@ export class SignaturePadSerialDriver extends BaseDriver {
     this.readInterval = setInterval(() => {
       if (this.bytesArray.length < this.chunkSize) return;
       let decodedObj = null;
-      decodedObj = this.decodeFunction(
-        this.bytesArray.slice(0, this.chunkSize)
+      let startIndex = this.bytesArray.findIndex(
+        (value) => value == this.penDownByte || value == this.penUpByte
       );
+      this.bytesArray.splice(0, startIndex);
+      let nextIndex = this.bytesArray
+        .slice(1)
+        .findIndex(
+          (value) => value == this.penDownByte || value == this.penUpByte
+        );
+      decodedObj = this.decodeFunction(this.bytesArray.slice(0, nextIndex));
+      console.log(this.bytesArray);
       if ("ignore" in decodedObj && decodedObj.ignore === true) {
         this.bytesArray.splice(
           0,
