@@ -114,7 +114,7 @@ export const signaturePadView = (function () {
   }
 
   function connect(connectingMsg) {
-    let connectButton = document.getElementById(connectButtonId);
+    let connectButton = document.getElementById(connectButtonModalId);
     let connectInner = connectButton.innerHTML;
     connectButton.innerHTML = connectingMsg;
     connectButton.disabled = true;
@@ -170,17 +170,17 @@ export const signaturePadView = (function () {
   }
 
   function enableDisconnectButton() {
-    document.getElementById(connectButtonId).disabled = true;
+    document.getElementById(connectButtonModalId).disabled = true;
     document.getElementById(disconnectButtonId).disabled = false;
   }
 
   function enableConnectButton() {
-    document.getElementById(connectButtonId).disabled = false;
+    document.getElementById(connectButtonModalId).disabled = false;
     document.getElementById(disconnectButtonId).disabled = true;
   }
 
   function setConnectButtonInner(innerHtml) {
-    document.getElementById(connectButtonId).innerHTML = innerHtml;
+    document.getElementById(connectButtonModalId).innerHTML = innerHtml;
   }
 
   function setDisconnectButtonInner(innerHtml) {

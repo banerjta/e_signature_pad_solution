@@ -2,6 +2,7 @@ import { signaturePadView } from "./view.js";
 import { SignaturePadSerialDriver } from "../drivers//signature-pad-serialport-driver.js";
 import { SignaturePadHIDDriver } from "../drivers/signature-pad-hid-driver.js";
 import { BaseController } from "../controllers/base-controller.js";
+import { profiles } from "./profiles/profile-list.js";
 import { connectionInterfaces } from "../constants/connection-interfaces.js";
 
 export class SignaturePadController extends BaseController {
@@ -32,7 +33,7 @@ export class SignaturePadController extends BaseController {
   }
 
   /**
-   * render the html component to the dom and bind buttons
+   * render the html componenet to the dom and bind buttons
    */
   render = async () => {
     await signaturePadView.loadModelsList(async (profile) => {
@@ -77,11 +78,13 @@ export class SignaturePadController extends BaseController {
     this.signaturePadDriver =
       this.currentProfile.connectionInterface ===
       connectionInterfaces.SERIALPORT
-        ? new SignaturePadSerialDriver(this.drawOnCanvas)
-        : new SignaturePadHIDDriver(this.drawOnCanvas);
-    let deviceNumber = undefined;
+        ? new SignaturePadSerialDriver()
+        : new SignaturePadHIDDriver();
     try {
-      deviceNumber = await this.signaturePadDriver.connect(this.drawOnCanvas);
+      await this.signaturePadDriver.connect({
+        vid: this.currentProfile.vid,
+        pid: this.currentProfile.pid,
+      });
     } catch (error) {
       //usually enter if user didn't select any device
       console.error(error);
@@ -89,7 +92,6 @@ export class SignaturePadController extends BaseController {
       signaturePadView.enableConnectButton();
       return;
     }
-
     try {
       this.signaturePadDriver.open({
         baudRate: this.currentProfile.baudRate,
@@ -178,12 +180,8 @@ export class SignaturePadController extends BaseController {
    * download signature as image
    */
   downloadImage = () => {
-    signaturePadView.downloadImage(
-      this.xStart,
-      this.yStart,
-      this.xEnd,
-      this.yEnd
-    );
+    console.log(canvas.width, canvas.height);
+    signaturePadView.downloadImage(0, 0, canvas.width, canvas.height);
   };
 
   destroy = async () => {

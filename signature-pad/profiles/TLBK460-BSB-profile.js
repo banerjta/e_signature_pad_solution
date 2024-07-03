@@ -16,9 +16,12 @@ export class TopazSignaturePadTLBK460BSBProfile extends BaseProfile {
     return vid == 0x0403 && pid == 0x6001;
   };
 
+  static vid = 0x0403;
+  static pid = 0x6001;
+
   static penDownByte = 0xc1;
   static penUpByte = 0xc0;
-  
+
   // width is the diffrence between right and left
   static canvasWidth = this.rightCoordinate - this.leftCoordinate;
 
@@ -29,7 +32,8 @@ export class TopazSignaturePadTLBK460BSBProfile extends BaseProfile {
     if (bytes[0] != this.penDownByte && bytes[0] != this.penUpByte)
       return { x: null, y: null, invalid: true, ignore: true };
     if (bytes[0] == this.penUpByte) return { x: null, y: null, penOut: true };
-    if (bytes[0] != this.penDownByte) return { x: null, y: null, invalid: true };
+    if (bytes[0] != this.penDownByte)
+      return { x: null, y: null, invalid: true };
 
     let bytesObj = super.decodeFunction(bytes);
     if (bytesObj.x != null) bytesObj.x = bytesObj.x - this.leftCoordinate;

@@ -13,10 +13,12 @@ export class TopazSignaturePadTLBKHSXProfile extends BaseProfile {
   static bottomCoordinate = 975;
 
   // set the filter to only accept this device
-
   static filter = (vid, pid) => {
     return vid == 0x06a8 && pid == 0x0043;
   };
+
+  static vid = 0x06a8;
+  static pid = 0x0043;
 
   static penDownByte = 0xc1;
   static penUpByte = 0xc0;
@@ -32,7 +34,7 @@ export class TopazSignaturePadTLBKHSXProfile extends BaseProfile {
   static canvasHeight = this.bottomCoordinate - this.topCoordinate;
 
   static decodeFunction = (bytes) => {
-    // bytes = bytes.slice(1);
+    //bytes = bytes.slice(1);
     if (bytes[0] != this.penDownByte && bytes[0] != this.penUpByte)
       return { x: null, y: null, invalid: true, ignore: true };
     if (bytes[0] == this.penUpByte) return { x: null, y: null, penOut: true };

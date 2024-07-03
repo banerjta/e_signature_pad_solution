@@ -1,0 +1,59 @@
+{
+  "name": "topaz-test",
+  "version": "1.0.2",
+  "description": "demo app and code for developing a solution for esignature in chrome os  E-signature pad support - topaz, scriptel # Features The demo app provided with this repository allows web-based apps/pages to interact with topaz e-signature devices: Events for connected / disconnected devices",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron-forge start",
+    "dev": "electron .",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "package": "electron-forge package",
+    "make": "electron-forge make",
+    "build-electron": "electron-builder"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/OmarSal99/topaz-hid-test.git"
+  },
+  "author": "test",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/OmarSal99/topaz-hid-test/issues"
+  },
+  "homepage": "https://github.com/OmarSal99/topaz-hid-test#readme",
+  "devDependencies": {
+    "@electron-forge/cli": "^7.4.0",
+    "@electron-forge/maker-deb": "^7.4.0",
+    "@electron-forge/maker-rpm": "^7.4.0",
+    "@electron-forge/maker-squirrel": "^7.4.0",
+    "@electron-forge/maker-zip": "^7.4.0",
+    "@electron-forge/plugin-auto-unpack-natives": "^7.4.0",
+    "electron": "^30.0.2",
+    "electron-builder": "^24.13.3",
+    "rpmbuild": "^0.0.23"
+  },
+  "dependencies": {
+    "electron-squirrel-startup": "^1.0.1",
+    "node-hid": "^3.1.0",
+    "serialport": "^12.0.0"
+  },
+  "build": {
+    "appId": "topaz-test",
+    "productName": "topaz-test",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "**/*"
+    ],
+    "win": {
+      "target": [
+        "nsis",
+        "zip"
+      ],
+      "icon": "assets/icon.ico",
+      "publisherName": "test"
+    }
+  }
+}

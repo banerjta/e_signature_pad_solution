@@ -1,4 +1,5 @@
 import { BaseDriver } from "./base-driver.js";
+const HID = require("node-hid");
 
 export class SignaturePadHIDDriver extends BaseDriver {
   constructor() {
@@ -6,6 +7,8 @@ export class SignaturePadHIDDriver extends BaseDriver {
     this.callbackFunction = null;
     this.parity = null;
     this.baudRate = null;
+    this.path = null;
+
     this.penDownByte = null;
     this.penUpByte = null;
 
@@ -15,8 +18,8 @@ export class SignaturePadHIDDriver extends BaseDriver {
     this.port = null;
     this.bytesArray = [];
 
-    // Boolean to stop read function from reading more data
-    this.keepReading = false;
+    // port reader object
+    this.reader = null;
 
     // store last point drawn information
     this.lastX = null;
@@ -27,15 +30,16 @@ export class SignaturePadHIDDriver extends BaseDriver {
 
   /**
    * request a device from the user, return it's pid and vid
-   * @returns {{vid: Number, pid: Number}}
+   * @param {{vid: Number, pid: Number}}
    */
-  connect = async () => {
-    // request the user to select a device (it will give permission to interact with the device)
-    let dev = await navigator.hid.requestDevice({ filters: [] });
-    this.port = dev[0];
-    let vid = this.port.vendorId;
-    let pid = this.port.productId;
-    return { vid: vid, pid: pid };
+  connect = async ({ vid, pid }) => {
+    const devices = await HID.devicesAsync();
+    console.log(devices);
+    const device = devices.find(
+      (dev) => dev.vendorId == vid && dev.productId == pid
+    );
+    console.log("device", device);
+    if (device) this.path = device.path;
   };
 
   /**
@@ -78,16 +82,12 @@ export class SignaturePadHIDDriver extends BaseDriver {
     this.penUpByte = options.penUpByte;
 
     // open a connection with that device
-    await this.port.open();
+    this.port = await HID.HIDAsync.open(this.path);
     this.process();
-    this.keepReading = true;
 
-    this.port.addEventListener("inputreport", (event) => {
-      if (this.keepReading) {
-        let data = new Uint8Array(event.data.buffer);
-        console.log(data.toString());
-        this.bytesArray.push(...data);
-      }
+    this.port.on("data", (data) => {
+      console.log(...data);
+      this.bytesArray.push(...data);
     });
 
     // reset bytes array after 0.05s, it clear any old bytes were stuck in the buffer
@@ -185,8 +185,6 @@ export class SignaturePadHIDDriver extends BaseDriver {
       } else this.callbackFunction(x, y, x, y);
       this.lastX = x;
       this.lastY = y;
-
-      this.locked = false;
     }, 5);
   };
 
@@ -195,7 +193,6 @@ export class SignaturePadHIDDriver extends BaseDriver {
    */
   disconnect = async () => {
     if (this.port != null) {
-      this.keepReading = false;
       if (this.readInterval) {
         clearInterval(this.readInterval);
         this.readInterval = null;
