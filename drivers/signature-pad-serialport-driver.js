@@ -107,10 +107,8 @@ export class SignaturePadSerialDriver extends BaseDriver {
   /**
    * function is called when new data come from device
    * it decode and draw the data on canvas
-   * @param {String} data a hexadecimal number string represent the bytes recieved from device
-   * @param {Number} timeCalled time when function called in ms
    */
-  process = (data, timeCalled) => {
+  process = () => {
     // data is recieved as bytes representing points on the pad
     let drawLine = true;
     this.readInterval = setInterval(() => {
