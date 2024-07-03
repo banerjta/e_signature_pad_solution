@@ -1,11 +1,13 @@
 import { BaseDriver } from "./base-driver.js";
 
-export class SignaturePadDriver extends BaseDriver {
+export class SignaturePadHIDDriver extends BaseDriver {
   constructor() {
     super();
     this.callbackFunction = null;
     this.parity = null;
     this.baudRate = null;
+    this.penDownByte = null;
+    this.penUpByte = null;
 
     // number of bytes that represent each point
     this.chunkSize = null;
@@ -13,17 +15,14 @@ export class SignaturePadDriver extends BaseDriver {
     this.port = null;
     this.bytesArray = [];
 
-    // async read function that get called (it get store so await can be used on it later)
-    this.reading = null;
     // Boolean to stop read function from reading more data
     this.keepReading = false;
-    // port reader object
-    this.reader = null;
 
     // store last point drawn information
-    this.lastCallTime = null;
     this.lastX = null;
     this.lastY = null;
+
+    this.readInterval = null;
   }
 
   /**
@@ -32,10 +31,10 @@ export class SignaturePadDriver extends BaseDriver {
    */
   connect = async () => {
     // request the user to select a device (it will give permission to interact with the device)
-    this.port = await navigator.serial.requestPort();
-
-    let vid = this.port.getInfo().usbVendorId;
-    let pid = this.port.getInfo().usbProductId;
+    let dev = await navigator.hid.requestDevice({ filters: [] });
+    this.port = dev[0];
+    let vid = this.port.vendorId;
+    let pid = this.port.productId;
     return { vid: vid, pid: pid };
   };
 
@@ -67,7 +66,7 @@ export class SignaturePadDriver extends BaseDriver {
       parity: "odd",
       chunkSize: 5,
       decodeFunction: _decodeFunction,
-      callbackFunction: ()=>{},
+      callbackFunction: () => {},
     };
 
     options = { ...defaultOptions, ...options };
@@ -75,39 +74,21 @@ export class SignaturePadDriver extends BaseDriver {
     this.parity = options.parity;
     this.chunkSize = options.chunkSize;
     this.decodeFunction = options.decodeFunction;
+    this.penDownByte = options.penDownByte;
+    this.penUpByte = options.penUpByte;
 
     // open a connection with that device
-    await this.port.open({
-      baudRate: this.baudRate,
-      parity: this.parity,
-      bufferSize: 16777216,
-    });
-
+    await this.port.open();
+    this.process();
     this.keepReading = true;
 
-    // read function, constantly read data (using await) until keepreading is false
-    let read = async () => {
-      this.reader = await this.port.readable.getReader();
-      while (this.port.readable && this.keepReading) {
-        try {
-          // reader will return done if reader.cancel() used and it will break the loop
-          while (true) {
-            const { value, done } = await this.reader.read();
-            if (done) {
-              break;
-            }
-            // call process and give data and the current time
-            this.process(value, new Date().getTime());
-          }
-        } catch (error) {
-          console.error(error);
-          break;
-        } finally {
-          await this.reader.releaseLock();
-        }
+    this.port.addEventListener("inputreport", (event) => {
+      if (this.keepReading) {
+        let data = new Uint8Array(event.data.buffer);
+        console.log(data.toString());
+        this.bytesArray.push(...data);
       }
-    };
-    this.reading = read();
+    });
 
     // reset bytes array after 0.05s, it clear any old bytes were stuck in the buffer
     setTimeout(() => {
@@ -119,44 +100,94 @@ export class SignaturePadDriver extends BaseDriver {
   /**
    * function is called when new data come from device
    * it decode and draw the data on canvas
-   * @param {String} data a hexadecimal number string represent the bytes recieved from device
-   * @param {Number} timeCalled time when function called in ms
    */
-  process = (data, timeCalled) => {
+  process = () => {
     // data is recieved as bytes representing points on the pad
-    // device send limited number of points/s wich is around 120 times/s
-    // to fix having gaps between points when user draw a line constantly it check the last time user draw
-    // if it was less than 30ms ago it connect that 2 points with a line
-    let drawLine = false;
-    if (this.lastCallTime != null && this.lastCallTime + 30 > timeCalled)
-      drawLine = true;
-
-    this.bytesArray.push(...data);
-
-    // while the bytesArray have over 5 elements (chunk size is 5) it keep processing data in it
-    while (this.bytesArray.length >= this.chunkSize) {
+    let drawLine = true;
+    this.readInterval = setInterval(() => {
+      if (this.bytesArray.length < this.chunkSize) return;
       let decodedObj = null;
-      decodedObj = this.decodeFunction(
-        this.bytesArray.slice(0, this.chunkSize)
+      let startIndex = this.bytesArray.findIndex(
+        (value) => value == this.penDownByte || value == this.penUpByte
       );
+      this.bytesArray.splice(0, startIndex);
+      let nextIndex = this.bytesArray
+        .slice(1)
+        .findIndex(
+          (value) => value == this.penDownByte || value == this.penUpByte
+        );
+      decodedObj = this.decodeFunction(this.bytesArray.slice(0, nextIndex));
+      if ("ignore" in decodedObj && decodedObj.ignore === true) {
+        this.bytesArray.splice(
+          0,
+          this.bytesArray.findIndex(
+            (value) => value == this.penDownByte || value == this.penUpByte
+          )
+        );
+        return;
+      }
       if ("invalid" in decodedObj && decodedObj.invalid === true) {
         this.lastX = null;
         this.lastY = null;
-        this.bytesArray.splice(0, this.chunkSize);
-        continue;
+        this.bytesArray.splice(
+          0,
+          this.bytesArray.findIndex(
+            (value) => value == this.penDownByte || value == this.penUpByte
+          )
+        );
+        return;
+      }
+      drawLine = true;
+      if ("penOut" in decodedObj) {
+        this.lastX = null;
+        this.lastY = null;
+        this.bytesArray.splice(0, 1);
+        this.bytesArray.splice(
+          0,
+          this.bytesArray.findIndex(
+            (value) => value == this.penDownByte || value == this.penUpByte
+          )
+        );
+        drawLine = false;
+        return;
       }
       let x = decodedObj.x;
       let y = decodedObj.y;
       // remove the decoded bytes from the array
-      this.bytesArray.splice(0, this.chunkSize);
+      let nextPointIndex = this.bytesArray.findIndex(
+        (value) => value == this.penDownByte || value == this.penUpByte
+      );
+      if (nextPointIndex === -1) {
+        this.bytesArray.splice(0, this.bytesArray.length - 1);
+        return;
+      }
+      this.bytesArray.splice(0, 1);
+      this.bytesArray.splice(
+        0,
+        this.bytesArray.findIndex(
+          (value) => value == this.penDownByte || value == this.penUpByte
+        )
+      );
+      if (
+        this.bytesArray[0] != this.penDownByte &&
+        this.bytesArray[0] != this.penUpByte
+      ) {
+        this.bytesArray.splice(
+          0,
+          this.bytesArray.findIndex(
+            (value) => value == this.penDownByte || value == this.penUpByte
+          )
+        );
+        return;
+      }
       if (drawLine === true && this.lastX !== null && this.lastY !== null) {
         this.callbackFunction(x, y, this.lastX, this.lastY);
       } else this.callbackFunction(x, y, x, y);
       this.lastX = x;
       this.lastY = y;
-    }
-    if (this.lastX !== null && this.lastY !== null)
-      this.lastCallTime = timeCalled;
+
+      this.locked = false;
+    }, 5);
   };
 
   /**
@@ -165,8 +196,10 @@ export class SignaturePadDriver extends BaseDriver {
   disconnect = async () => {
     if (this.port != null) {
       this.keepReading = false;
-      this.reader.cancel();
-      await this.reading;
+      if (this.readInterval) {
+        clearInterval(this.readInterval);
+        this.readInterval = null;
+      }
       await this.port.close();
     }
   };

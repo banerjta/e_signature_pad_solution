@@ -15,6 +15,7 @@
 
   --signature-containr-color: #dfdfdf;
   --card-background: linear-gradient(to left, #c6e2ff, #007bff);
+  --modal-overlay: #00000066;
 }
 
 [page-theme="dark"] {
@@ -34,9 +35,24 @@
 
   --signature-containr-color: #515151;
   --card-background: linear-gradient(to right, #0e4774, #0e5eb3);
+  --modal-overlay: #ffffff66;
 }
 * {
   color: var(--black-to-white);
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: #aaa;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background-color: #f0f0f0;
+  border-radius: 6px;
 }
 
 #header-middle h1 {
@@ -44,13 +60,13 @@
 }
 
 .wrapper-horizontal {
-  padding: 35px 20px;
   display: flex;
   flex-direction: column;
   gap: 30px;
   align-items: center;
   justify-content: center;
   flex-wrap: wrap;
+  width: 100%;
 }
 
 body {
@@ -108,6 +124,10 @@ body {
   min-width: 10em;
   width: 200px;
   position: relative;
+}
+
+.models-dropdown {
+  width: 300px;
 }
 
 .dropdown * {
@@ -169,6 +189,8 @@ body {
   transform: translateX(-50%);
   display: none;
   transition: 0.2s;
+  max-height: 400px;
+  overflow: auto;
 }
 
 .dropdown:hover .dropdown-content {
@@ -220,6 +242,15 @@ body {
   cursor: pointer;
 }
 
+#signature-pad-space {
+  height: 100%;
+  padding: 35px 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 30px;
+}
 
 .card {
   display: flex;
@@ -235,7 +266,6 @@ body {
   cursor: pointer;
   background: var(--card-background);
 }
-
 
 .card-content {
   padding: 16px;
@@ -269,10 +299,54 @@ body {
   margin-bottom: 3px;
 }
 
-
 #canvas {
-  background-color: #c3c3c3 ;
+  background-color: #c3c3c3;
   height: 256px;
   width: 512px;
   border: 1px solid black;
+}
+
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 1;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  background-color: var(--modal-overlay);
+}
+
+.modal-content {
+  background-color: var(--main-color);
+  margin: 15% auto;
+  padding: 20px;
+  border: 1px solid #888;
+  border-radius: 15px;
+  width: 30%;
+}
+
+.close {
+  color: #aaa;
+  float: right;
+  font-size: 28px;
+  font-weight: bold;
+}
+
+.close:hover,
+.close:focus {
+  color: black;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.interface-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.connect-button {
+  align-self: flex-end;
 }

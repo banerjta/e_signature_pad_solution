@@ -1,3 +1,5 @@
+import { connectionInterfaces } from "../../constants/connection-interfaces.js";
+
 export class BaseProfile {
   /**
    * a function taht take vid and pid and return whether if this profile is suitable for that device or not
@@ -11,14 +13,21 @@ export class BaseProfile {
   };
 
   /**
+   * Communication type with the device, Could be SERIALPORT or HID
+   * @static
+   * @type {string}
+   */
+  static connectionInterface = connectionInterfaces.SERIALPORT;
+
+  /**
    * baudRate on the port, integer with range bewteen 1, Infinity
    * @static
    * @type {number}
    */
-  static baudRate = 19200;
+  static baudRate = 19200; //should be 19200
 
   /**
-   * the party check, values could be "none", "odd" or "even"
+   * the parity check, values could be "none", "odd" or "even"
    * @static
    * @type {string}
    */
@@ -36,7 +45,7 @@ export class BaseProfile {
    * @static
    * @type {number}
    */
-  static lineWidth = 4;
+  static lineWidth = 5;
 
   /**
    * the width of the canvas in pixels (it won't change the width that the user see on the page)
@@ -54,6 +63,9 @@ export class BaseProfile {
    */
   static canvasHeight = 1000;
 
+  static penDownByte = 0xc1;
+  static penUpByte = 0xc0;
+
   /**
    * the decodeFunction, it take an array of bytes and return x and y after decoded
    * if no point/line should be drawn set invalid as true (the default is always valid unless it is set to true)
@@ -63,7 +75,7 @@ export class BaseProfile {
    */
   static decodeFunction = (bytes) => {
     // bytes length is 5, first byte is 0xc1 when the pen in drawing on the pad, anything other than it will be invalid
-    if (bytes[0] != 0xc1) return { x: null, y: null, invalid: true };
+    // if (bytes[0] != 0xc1) return { x: null, y: null, invalid: true };
 
     // 2ed and 3ed bytes are for x and 4th and 5th bytes are for y
     let x = 0;

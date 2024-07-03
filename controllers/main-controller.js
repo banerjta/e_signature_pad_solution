@@ -16,6 +16,3 @@ const showDevice = (deviceController) => {
   document.getElementById("device-space").innerHTML = "";
   deviceController.render();
 };
-
-
-

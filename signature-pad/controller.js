@@ -1,7 +1,8 @@
 import { signaturePadView } from "./view.js";
-import { SignaturePadDriver } from "../drivers/signature-pad-driver.js";
+import { SignaturePadSerialDriver } from "../drivers//signature-pad-serialport-driver.js";
+import { SignaturePadHIDDriver } from "../drivers/signature-pad-hid-driver.js";
 import { BaseController } from "../controllers/base-controller.js";
-import { profiles } from "./profiles/profile-list.js";
+import { connectionInterfaces } from "../constants/connection-interfaces.js";
 
 export class SignaturePadController extends BaseController {
   static instance;
@@ -25,20 +26,42 @@ export class SignaturePadController extends BaseController {
     this.yEnd = null;
 
     this.lineWidth = null;
+    this.currentProfile = null;
+    this.loadedHTML = false;
+    this.connectedDevice = false;
   }
 
   /**
-   * render the html componenet to the dom and bind buttons
+   * render the html component to the dom and bind buttons
    */
   render = async () => {
-    await signaturePadView.loadHtml();
-    signaturePadView.bindControlButtons(
-      this.connect,
-      this.disconnect,
-      this.clearCanvas,
-      this.downloadImage
-    );
-    this.clearCanvas();
+    await signaturePadView.loadModelsList(async (profile) => {
+      this.currentProfile = profile.PROFILE;
+      if (this.signaturePadDriver != null && this.connectedDevice) {
+        this.disconnect();
+      }
+      if (!this.loadedHTML) {
+        await signaturePadView.loadHtml();
+        signaturePadView.bindControlButtons(
+          this.connect,
+          this.disconnect,
+          this.clearCanvas,
+          this.downloadImage
+        );
+        this.loadedHTML = true;
+      }
+
+      this.clearCanvas();
+
+      this.lineWidth = this.currentProfile.lineWidth;
+
+      // css scale is 2:1 (width:height), it rescale it and add extra pixels if needed
+      // this will only effect the view (having empty space), the download image will stay the same
+      signaturePadView.updateCanvasSize(
+        this.currentProfile.canvasWidth,
+        this.currentProfile.canvasHeight
+      );
+    });
   };
 
   /**
@@ -47,9 +70,15 @@ export class SignaturePadController extends BaseController {
    * search for profile for that device and load it's parameters
    * then open the port and start reading on it
    */
-  connect = async () => {
+  connect = async (interfaceType) => {
+    console.log(interfaceType);
     let connectInner = signaturePadView.connect("connecting ...");
-    this.signaturePadDriver = new SignaturePadDriver(this.drawOnCanvas);
+
+    this.signaturePadDriver =
+      this.currentProfile.connectionInterface ===
+      connectionInterfaces.SERIALPORT
+        ? new SignaturePadSerialDriver(this.drawOnCanvas)
+        : new SignaturePadHIDDriver(this.drawOnCanvas);
     let deviceNumber = undefined;
     try {
       deviceNumber = await this.signaturePadDriver.connect(this.drawOnCanvas);
@@ -60,38 +89,18 @@ export class SignaturePadController extends BaseController {
       signaturePadView.enableConnectButton();
       return;
     }
-    // search for a suitable profile using filter function
-    let i = 0;
-    for (; i < profiles.length; i++) {
-      if (profiles[i].PROFILE.filter(deviceNumber.vid, deviceNumber.pid)) break;
-    }
-    if (i >= profiles.length) {
-      alert(
-        "Couldn't find suitable profile for that device! device could be not supported"
-      );
-      signaturePadView.setConnectButtonInner(connectInner);
-      signaturePadView.enableConnectButton();
-      return;
-    }
-    let profile = profiles[i].PROFILE;
-
-    this.lineWidth = profile.lineWidth;
-
-    // css scale is 2:1 (width:height), it rescale it and add extra pixels if needed
-    // this will only effect the view (having empty space), the download image will stay the same
-    signaturePadView.updateCanvasSize(
-      profile.canvasWidth,
-      profile.canvasHeight
-    );
 
     try {
       this.signaturePadDriver.open({
-        baudRate: profile.baudRate,
-        parity: profile.parity,
-        chunkSize: profile.chunkSize,
-        decodeFunction: profile.decodeFunction,
+        baudRate: this.currentProfile.baudRate,
+        parity: this.currentProfile.parity,
+        chunkSize: this.currentProfile.chunkSize,
+        penDownByte: this.currentProfile.penDownByte,
+        penUpByte: this.currentProfile.penUpByte,
+        decodeFunction: this.currentProfile.decodeFunction,
         callbackFunction: this.drawOnCanvas,
       });
+      this.connectedDevice = true;
     } catch (error) {
       console.error(error);
       signaturePadView.setConnectButtonInner(connectInner);

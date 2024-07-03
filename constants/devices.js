@@ -13,7 +13,7 @@ import { ToapzDeisplayController } from "../topaz-display/controller.js";
  */
 export const signatureDevices = [
   Object.freeze({
-    LABEL: "Signature pad",
+    LABEL: "Topaz signature pad",
     CONTROLLER: SignaturePadController.getInstance(),
   }),
 
